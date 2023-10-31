@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -99,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         txtCount.setText("count - " + usbDevicesList.size());
     }
 
+    // setting up broadcast receiver
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -121,4 +123,30 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    // check whether device has camera
+    private CameraOptions hasCamera() {
+        if(getApplicationContext().getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_CAMERA_EXTERNAL
+        )){
+            return CameraOptions.EXTERNAL;
+        } else if (getApplicationContext().getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_CAMERA_FRONT
+        )) {
+            return CameraOptions.FRONT;
+        } else if (getApplicationContext().getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_CAMERA
+        )) {
+            return CameraOptions.BACK;
+        } else {
+            return CameraOptions.NO_HARDWARE;
+        }
+    }
+}
+
+enum CameraOptions {
+    EXTERNAL,
+    FRONT,
+    BACK,
+    NO_HARDWARE
 }
