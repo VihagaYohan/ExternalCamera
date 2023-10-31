@@ -21,6 +21,7 @@
 
     <!-- permissions -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
         android:allowBackup="true"
@@ -49,6 +50,17 @@
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+       <!-- <provider
+            android:authorities="com.example.camera_1.fileProvider"
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.v4.F">
+
+            </meta-data>
+        </provider>-->
     </application>
 
 </manifest>

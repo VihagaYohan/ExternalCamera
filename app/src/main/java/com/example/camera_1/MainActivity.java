@@ -1,5 +1,6 @@
 package com.example.camera_1;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -17,7 +18,10 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +29,9 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int CAMERA_PERMISSION_CODE = 1;
+    private static final int RECORD_PERMISSION_CODE = 1;
+    private final int REQUEST_IMAGE_CAPTURE = 1;
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
     UsbManager manager;
     private List<String> usbDevicesList = new ArrayList<>();
@@ -110,15 +117,24 @@ public class MainActivity extends AppCompatActivity {
                     // UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     // device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                     UsbDevice device1 = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    
+                    if(device1 != null) {
+                        checkCameraPermission();
+                        checkAudioPermission();
+                    } else {
+                        Toast.makeText(context, "No camera detected", Toast.LENGTH_SHORT).show();   
+                    }
 
-                    if(intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED,true)) {
+                    /*if(intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED,true)) {
                         if(device1 != null) {
                             // call method to set up device communication
                             Toast.makeText(context,"device id - " + device.getDeviceId(), Toast.LENGTH_SHORT).show();
+                            checkCameraPermission();
+                            checkAudioPermission();
                         }
                     } else {
-   Toast.makeText(context, "permission denied for device " + device, Toast.LENGTH_SHORT).show();
-                    }
+                        Toast.makeText(context, "permission denied for device " + device, Toast.LENGTH_SHORT).show();
+                    }*/
                 }
             }
         }
@@ -140,6 +156,39 @@ public class MainActivity extends AppCompatActivity {
             return CameraOptions.BACK;
         } else {
             return CameraOptions.NO_HARDWARE;
+        }
+    }
+
+    // request permissions
+    private void checkCameraPermission() {
+        if(ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[] {Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE);
+        } else {
+            Toast.makeText(this, "Camera permission already grated - ", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void checkAudioPermission(){
+        if(ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[] {Manifest.permission.RECORD_AUDIO},RECORD_PERMISSION_CODE);
+        } else {
+            Toast.makeText(this, "Audio permission already granted", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(requestCode == CAMERA_PERMISSION_CODE){
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "camera permission granted - onRequest Event", Toast.LENGTH_SHORT).show();
+            }else {
+                Toast.makeText(this, "Camera permission has been denied", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
