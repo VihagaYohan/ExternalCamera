@@ -1,13 +1,12 @@
 package com.example.camera_1;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -15,79 +14,111 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+    UsbManager manager;
+    private List<String> usbDevicesList = new ArrayList<>();
+    private UsbDevice device;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        getDevices();
+        // device = (UsbDevice) getIntent().getParcelableExtra(UsbManager.EXTRA_DEVICE);
 
-        Log.d("title","device list goes here");
-        Log.d("device list", String.valueOf(manager.getDeviceList()));
+        // check for deviceList length
+        if(usbDevicesList.size() == 0) {
+            Toast.makeText(this, "Usb device list is empty", Toast.LENGTH_SHORT).show();
+            return;
+        } else {
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+
+            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+
+            registerReceiver(usbReceiver, filter);
+
+            manager.requestPermission(device,permissionIntent);
+        }
+    }
+
+    // get connected devices using intent
+    private void getDevicesIntent() {
+        device = (UsbDevice) getIntent().getParcelableExtra(UsbManager.EXTRA_DEVICE);
+    }
+
+    private void getDevices(){
+        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+        if(deviceList.size() == 0) {
+            Toast.makeText(this, "There are no devices connected. Hash map is empty", Toast.LENGTH_SHORT).show();
+        } else {
+            for(UsbDevice usbDevice : deviceList.values()) {
+                usbDevicesList.add(usbDevice.getDeviceName());
+                device = usbDevice;
+            }
+            initializeList();
+        }
+    }
+
+    // get connected devices
+    /* private void getDevices() {
+        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        // get external USB devices connected to android device
         HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
 
-        List<String> valuesList = new ArrayList<>();
-
+        // iterate through deviceList, and items to usbDeviceList array list
         for(UsbDevice usbDevice : deviceList.values()) {
-            // Log.d("camera device","value - " + usbDevice.getDeviceId());
-            valuesList.add(usbDevice.getDeviceName());
-
+            usbDevicesList.add(usbDevice.getDeviceName());
         }
 
-       /* HashMap<String, String> capitalCities = new HashMap<>();
-        capitalCities.put("England", "London");
-        capitalCities.put("Germany", "Berlin");
-        capitalCities.put("Norway", "Oslo");
-        capitalCities.put("USA", "Washington DC");
+        // initializeList();
+    }*/
 
-        List<String> valuesList = new ArrayList<>(capitalCities.values());*/
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, valuesList);
+    // initialize data for list view
+    private void initializeList(){
+        // create adapter
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, usbDevicesList);
         ListView listView = findViewById(R.id.listView);
         listView.setAdapter(adapter);
 
+        // set list count
         TextView txtCount = findViewById(R.id.textCount);
-        /*  set count for detected USB devices
-            txtCount.setText("count - " + valuesList.size());
-        */
-
-        txtCount.setText(hasCamera());
+        txtCount.setText("count - " + usbDevicesList.size());
     }
 
-    private void showAlert() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(ACTION_USB_PERMISSION.equals(action)) {
+                synchronized (this) {
+                    // UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    // device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                    UsbDevice device1 = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
 
-        builder.setTitle("Alert title")
-                .setMessage("This is an alert message")
-                .setPositiveButton("OK", new DialogInterface.OnClickListener(){
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
+                    if(intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED,true)) {
+                        if(device1 != null) {
+                            // call method to set up device communication
+                            Toast.makeText(context,"device id - " + device.getDeviceId(), Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+   Toast.makeText(context, "permission denied for device " + device, Toast.LENGTH_SHORT).show();
                     }
-                });
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
-    private String hasCamera() {
-           if(getApplicationContext().getPackageManager().hasSystemFeature(
-                   PackageManager.FEATURE_CAMERA_EXTERNAL)) {
-               return "Has external camera";
-           } else if (getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT)) {
-               return "Has front-facing camera";
-           } else if (getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-               return "Has back camera";
-           } else {
-               return "Does not have camera feature";
-           }
-    }
+                }
+            }
+        }
+    };
 }
